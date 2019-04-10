@@ -3,20 +3,15 @@
 
 // Alien flower using three.js!
 
-// window.alert("Press R to rotate!");
-
 var camera, scene, renderer, controls, light;
-var stem, cover, flower, petalCount;
-var isRotating = false;
+var stem, stemCover, bulbCover, petalCover, bumpCover, flower, petalCount;
 var growing = true;
-var clock = new THREE.Clock();
 
 init();
 animate();
 
 function init() {
     scene = new THREE.Scene();
-    // scene.background = new THREE.Color(0xcccccc);
 
     // Renderer
     renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -48,21 +43,7 @@ function init() {
     var ambLight = new THREE.AmbientLight(0x333333);
     scene.add(ambLight);
 
-    // Geometry
-    // var skybox = new THREE.CubeGeometry(10000, 10000, 10000);
-    // var boxMaterials = [
-    //     new THREE.MeshBasicMaterial({ map: new THREE.TextureLoader().load("skybox/front.png"), side: THREE.DoubleSide}),
-    //     new THREE.MeshBasicMaterial({ map: new THREE.TextureLoader().load("skybox/back.png"), side: THREE.DoubleSide}),
-    //     new THREE.MeshBasicMaterial({ map: new THREE.TextureLoader().load("skybox/up.png"), side: THREE.DoubleSide}),
-    //     new THREE.MeshBasicMaterial({ map: new THREE.TextureLoader().load("skybox/down.png"), side: THREE.DoubleSide}),
-    //     new THREE.MeshBasicMaterial({ map: new THREE.TextureLoader().load("skybox/left.png"), side: THREE.DoubleSide}),
-    //     new THREE.MeshBasicMaterial({ map: new THREE.TextureLoader().load("skybox/right.png"), side: THREE.DoubleSide})
-    // ];
-
-    // var boxMaterial = new THREE.MeshFaceMaterial(boxMaterials);
-    // var box = new THREE.Mesh(skybox, boxMaterial);
-    // scene.add(box);
-
+    // Skybox!
     var r = "skybox/"
     var urls = [
         r + "front.png",
@@ -75,20 +56,28 @@ function init() {
     var skyBox = new THREE.CubeTextureLoader().load(urls);
     scene.background = skyBox;
 
+    // Geometry
     stem = new THREE.CylinderGeometry(20, 20, 300);
 
     stemCover = new THREE.MeshPhongMaterial({ color: 0x8700a1, refractionRatio: 0.98, reflectivity: 0.9,});
     bulbCover = new THREE.MeshPhongMaterial({ color: 0x001941, refractionRatio: 0.98, reflectivity: 0.9 });
     petalCover = new THREE.MeshPhongMaterial({ color: 0x48829A, refractionRatio: 0.98, reflectivity: 0.9 });
+    bumpCover = new THREE.MeshNormalMaterial();
 
     flower = new THREE.Mesh(stem, stemCover);
-    flower.position.set(0, -170, 0);
+    flower.position.set(0, -130, 0);
     scene.add(flower);
 
     var bulbShape = new THREE.TorusGeometry(75, 25, 8, 50);
     var bulb = new THREE.Mesh(bulbShape, bulbCover);
     bulb.position.set(0, 243, 0);
     flower.add(bulb);
+
+    var rootShape = new THREE.TorusGeometry(40, 25, 0, 50);
+    var roots = new THREE.Mesh(rootShape, bulbCover);
+    roots.position.set(0, -140, 0);
+    roots.rotation.x = THREE.Math.degToRad(90);
+    flower.add(roots);
 
     createPetal(0, 370, 180);
     createPetal(-115, 180, 295);
@@ -97,13 +86,15 @@ function init() {
     createPetal(110, 310, 120);
     petalCount = 5;
 
+    // Create bumps
+    var bottomCoord = -120;
+    var topCoord = 120;
+    while (bottomCoord <= topCoord) {
+        createStemBumps(0, bottomCoord, 0);
+        bottomCoord += 20;
+    }
+
     window.addEventListener('resize', onWindowResize, false);
-
-    document.addEventListener('keydown', function (event) {
-        var code = event.keyCode;
-        if (code == 82) isRotating = !isRotating    //r
-    });
-
     render();
 }
 
@@ -117,37 +108,43 @@ function onWindowResize() {
 }
 
 function createPetal(x, y, angle) {
-    var petal_shape = new THREE.CylinderGeometry(10, 50, 70);
-    var petal = new THREE.Mesh(petal_shape, petalCover);
+    var petalShape = new THREE.CylinderGeometry(10, 50, 70);
+    var petal = new THREE.Mesh(petalShape, petalCover);
     petal.rotation.z = THREE.Math.degToRad(angle);
     petal.position.set(x, y, 0)
     flower.add(petal);
 }
 
+function createStemBumps(x, y, z) {
+    var bumpShape = new THREE.SphereGeometry(21, 21);
+    var bump = new THREE.Mesh(bumpShape, bumpCover);
+    bump.position.set(x, y, z)
+    flower.add(bump);
+}
+
 function animate() {
     requestAnimationFrame(animate);
     controls.update();
-    // if (isRotating) flower.rotation.y = flower.rotation.y + 0.03;
     flower.rotation.y = flower.rotation.y + 0.02;
 
     renderer.render(scene, camera);
 
-    if (flower.children[1].scale.x > 1.6) {
+    if (flower.children[2].scale.x > 1.6) {
         growing = false;
     }
-    else if (flower.children[1].scale.x < 1) {
+    else if (flower.children[2].scale.x < 1) {
         growing = true;
     }
 
     if (growing) {
-        for (let i = 1; i < petalCount + 1; i++) {
+        for (let i = 2; i < petalCount + 2; i++) {
             flower.children[i].scale.x += .01;
             flower.children[i].scale.y += .01;
             flower.children[i].scale.z += .01;
         }
 
     } else {
-        for (let i = 1; i < petalCount + 1; i++) {
+        for (let i = 2; i < petalCount + 2; i++) {
             flower.children[i].scale.x -= .01;
             flower.children[i].scale.y -= .01;
             flower.children[i].scale.z -= .01;
